@@ -8,15 +8,34 @@ app.get('/', function(req, res){
   res.sendFile(__dirname + '/index.html');
 });
 
-io.on('connection', function(socket){
-  console.log('a user connected');
+const users = [];
 
-  socket.on('chat message', function(msg) {
-    io.emit('chat message', msg);
+io.on('connection', function(socket){
+  io.emit('new', { for: 'everyone', message: `Welcome Newb! Tell us your name!`})
+
+
+  socket.on('chat message', function(msg, socket) {
+    io.emit('chat message', msg, socket);
   });
 
+  socket.on('setUsername', function(data) {
+    if(users.indexOf(data) === -1){
+      users.push(data)
+      io.emit('setUserGroup', {usergroup: users})
+      socket.emit('userSet', { username: data });
+    } else {
+      socket.emit('userExists', data + ' username already exists. Try a new one!');
+    }
+  });
+
+  socket.on('typing message', function() {
+    socket.broadcast.emit('typing')
+  })
+
+
+
   socket.on('disconnect', function(){
-    console.log('user disconnected');
+    socket.broadcast.emit('new', { message: 'Adios Amigo!'});
   });
 });
 
